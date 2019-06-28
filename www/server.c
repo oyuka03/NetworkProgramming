@@ -16,13 +16,31 @@ void DieWithError(char *errorMessage){
 void commun(int sock){
 	char buf[BUF_SIZE];
 	int len_r;
-           char  *message ="‚¨•Ô‚µ‚Å-‚·";
-	
-	if ((len_r=recv(sock, buf, BUF_SIZE,  0)) <= 0)                                    /***huleen avagch***/
-	         DieWithError("recv() failed");
-	
+	while((len_r = recv(sock,buf, BUF_SIZE, 0)) > 0)
 	buf[len_r]='\0';
 	printf("%s\n",buf);
+	
+	
+	if (strstr(buf, "\r\n\r\n")){
+		break;
+	}
+}
+    if (len_r <= 0)
+    DueWithError("received() failed.");
+    
+    sprintf(response, "HTTP/1.1 200 OK\r\n");
+    
+    if(send(sock, responce, strlen(responce, 0) != s));
+  DieWithError("send() sent a message of unexpe");
+	printf("received HTTP Request.\n");
+	
+	/**   if((len_r=recv(sock, buf, BUF_SIZE,  0)) <= 0)                                    /
+	DieWithError("recv() failed");
+	         buf[len_r]='\0';
+	         printf("%s\n",buf);  huleen avagch **/
+	
+	  
+	
 	
 	if (send(sock, message, strlen(message), 0)!= strlen(message))
 	         DieWithError("send() sent a message of unexpected bytes");
