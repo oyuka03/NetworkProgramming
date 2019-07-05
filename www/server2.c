@@ -54,11 +54,11 @@ void commun(int sock){
     if(send(sock, response, strlen(response), 0) != strlen(response))
         DieWithError("send() sent a message of unexpected bytes");
     
-    sprintf(response, "ãƒãƒƒãƒˆãƒ¯ãƒ¼ã‚¯ãƒ—ãƒ­ã‚°ãƒ©ãƒŸãƒ³ã‚°ã®webã‚µã‚¤ãƒˆ");
+    sprintf(response, "ƒlƒbƒgƒ[ƒNƒvƒƒOƒ‰ƒ~ƒ“ƒO‚ÌwebƒTƒCƒg");
     if(send(sock, response, strlen(response), 0) != strlen(response))
         DieWithError("send() sent a message of unexpected bytes");
     
-    sprintf(response, "</title></head><body>ãƒãƒƒãƒˆãƒ¯ãƒ¼ã‚¯ãƒ€ã‚¤ã‚¹ã‚­</body></html>");
+    sprintf(response, "</title></head><body>ƒlƒbƒgƒ[ƒNƒ_ƒCƒXƒL</body></html>");
     if(send(sock, response, strlen(response), 0) != strlen(response))
         DieWithError("send() sent a message of unexpected bytes");
 }
