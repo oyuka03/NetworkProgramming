@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <regex.h>
 
 
 
@@ -15,23 +16,58 @@ void DieWithError(char *errorMessage){
 	exit(1);
 }
 void commun(int sock){
+	
+	
+	
+	
 	char buf[BUF_SIZE];
 	char buf_old[BUF_SIZE];
 	char buf2[2*BUF_SIZE];
 	int len_r;
 	char response[BUF_SIZE];
+
+	regex_t regBuf;
+	regmatch_t regMatch[1];
+	const char *pattern = "GET[^\n]+HTTP";
+	char result[100];
 	
 	buf_old[0]='\0';
+	result[0] = '\0';
+	
+	if ( regcomp(&regBuf, pattern, REG_EXTENDED | REG_NEWLINE)!=0){
+		DieWithError("regcomp failed");
+	}	
+	
 	while((len_r = recv(sock,buf, BUF_SIZE, 0)) > 0){
 	buf[len_r]='\0';
 	sprintf(buf2, "%s%s",buf_old, buf);
+		
+	printf("%s", buf);
 	
-	
-	if (strstr(buf, "\r\n\r\n")){
+		
+		if ( regexec(&regBuf, buf2, 1, regMatch, 0) != 0){
+			int startlndex = regMatch[0].rm_so;
+			int endlndex = regMatch[0].rm_eo;
+			strncpy(result, buf2 + startlndex, endlndex - startlndex);
+		}
+		
+	    if (strstr(buf2, "\r\n\r\n")){
 		break;
-	}
+	    } 
 		sprintf(buf_old, "%s", buf);
-}
+	}
+	regfree(&regBuf);
+	
+	char *uri;
+	if (result[0] != '\0'){
+		uri = strtok(result, " ");
+		uri = strtok(NULL, " ");
+		printf("%s\n", uri);
+	}else{
+		DieWithError("No URI");
+	}
+	
+	
     if (len_r <= 0)
     DieWithError("received() failed.");
     
