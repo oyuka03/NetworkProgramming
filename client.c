@@ -2,52 +2,50 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <stdio.h>      
-#include <string.h>                                                /*** socket kansuugateigisareteiru***/
-#define BUF_SIZE 256
+#include <stdio.h>
+#include <string.h>
 
-void DieWithError(char*errorMessage){
+#define BUF_SIZE 256
+#define MONEY_DIGIT_SIZE 10
+
+void DieWithError(char *);
+
+int prepare_server_socket(int);
+void commuun(int)
+
+	void DieWithError(char *errorMessage)
+{
 	perror(errorMessage);
 	exit(1);
 }
 
-void commun(int sock){
-	char buf[BUF_SIZE];
-	int len_r;
-	char*message="Hello serve03";
-	if (send(sock,message,strlen(message),0)!= strlen(message))
-	         DieWithError("send()sent a message of unexpected bytes");
-	if ((len_r=recv(sock,buf,BUF_SIZE, 0)) <= 0)                                    /***huleen avagch***/
-	         DieWithError("recv()failed");
-	buf[len_r]='\0';
-	
-	
-	printf("%s\n",buf);
+int prepare_server_socket(int port)
+{
+	int servSock = socket(PF_INET, SOCK_STREAM, 0);
+
+	struct sockaddr_in servAddress;
+
+	servAddress.sin_family = PF_INET;
+	servAddress.sin_port = (in_port_t)htons(80);
+	servAddress.sin_addr.s_addr = htonl(INADDR_ANY);
 }
 
+int main(int argc, char *argv)
+{
+	struct sockaddr_in clientAddress;
+	unsigned int szClientAddr;
+	int cliSock;
 
-int main(int argc, char**argv){
-	
-	if (argc != 3)
-	DieWithError("argument is not available");
-	
-	char *server_ippadr = argv[1]; //"10.13.64.20";
-	int server_port = atoi(argv[2]);
-	
-	int sock=socket(PF_INET,SOCK_STREAM,0);
-	if (sock < 0)
-	   DieWithError("socket()failed");
-	
-	struct sockaddr_in target;
-	target.sin_family=AF_INET;
-	target.sin_addr.s_addr=inet_addr(server_ippadr);       /***hoid heseg ni　変換***/
-	target.sin_port=htons(server_port);
-	
-	if (connect(sock,(struct sockaddr*)&target,sizeof(target)) < 0)
-		DieWithError("connect()failed");
-	
-	commun(sock);
-	
-	close(sock);	
-    return 0;
-}
+	int serveSock = prepare_server_socket(10001);
+
+	listen(serveSock, 5);
+
+	while (1)
+	{
+		szClientAddr = sizeof(clientAddress);
+		cliSock = accept(serveSock, (struct sockaddr *)&clientAddress, &szClientAddr);
+
+		commun(cliSock);
+
+		close(cliSock);
+	}
