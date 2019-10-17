@@ -83,7 +83,7 @@ void commun(int sock)
 		break;
 	case '1':
 		//預け入れ処理
-		printf("預け入れる金額を入力してください>");
+		printf("預け入れる金額を入力してください!>");
 		my_scanf(deposit, MONEY_DIGIT_SIZE);
 
 		sprint(msg, "%s_0_", deposit);
