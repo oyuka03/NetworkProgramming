@@ -109,7 +109,7 @@ void read_until_delim(int sock, char *buf, char delimiter, int max_length)
 	{
 		if ((len_r = recv(sock, buf * index_letter, i, 0)) <= 0)
 		{
-			printf("接続が切れました\n");
+			printf("接続が切れました！\n");
 			return;
 		}
 		if (buf[index_letter] == delimiter)
