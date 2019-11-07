@@ -10,26 +10,48 @@
 #define MONEY_DIGIT_SIZE 10
 
 void DieWithError(char *);
-int prepare_client_socket(char *, int);
-void my_scanf(char *, int);
+int prepare_server_socket(int);
 void commun(int);
 void read_until_delim(int, char *, char, int);
+int get_current_balance();
+void set_current_balance(int);
+void read_certain_bytes(int, void *, int);
+
+struct money
+{
+    int deposit;
+    int withdraw;
+};
 
 int main(int argc, char *argv[])
 {
-    // 実行時にはサーバのIPアドレスとポートを添えなければならない
-    if (argc != 3)
-        DieWithError("usage: ./client ip_address port");
+    // クライアントの情報を格納するための変数
+    struct sockaddr_in clientAddress;
+    unsigned int szClientAddr;
+    // クライアントとの通信用ソケット
+    int cliSock;
 
-    // ソケット生成
-    int sock = prepare_client_socket(argv[1], atoi(argv[2]));
+    // 待ち受け用ソケット
+    int servSock = prepare_server_socket(10001);
 
-    // サーバとの通信
-    commun(sock);
+    listen(servSock, 5);
 
-    // 通信終了
-    close(sock);
+    // 接続要求が来たときの動作
+    while (1)
+    {
+        szClientAddr = sizeof(clientAddress);
+        // 接続要求受け入れ
+        cliSock = accept(servSock, (struct sockaddr *)&clientAddress, &szClientAddr);
 
+        // クライアントとの通信
+        commun(cliSock);
+
+        // 通信終了
+        close(cliSock);
+    }
+
+    // 待ち受け用ソケットを閉じる
+    close(servSock);
     return 0;
 }
 
@@ -40,34 +62,24 @@ void DieWithError(char *errorMessage)
     exit(1);
 }
 
-// 通信用ソケットの生成
-int prepare_client_socket(char *ipaddr, int port)
+// 待ち受け用ソケットの生成
+int prepare_server_socket(int port)
 {
     // ソケット生成
-    int sock = socket(PF_INET, SOCK_STREAM, 0);
-    if (sock < 0)
+    int servSock = socket(PF_INET, SOCK_STREAM, 0);
+    if (servSock < 0)
         DieWithError("socket() failed");
 
     // サーバの情報を設定
-    struct sockaddr_in target;
-    target.sin_family = AF_INET;
-    target.sin_addr.s_addr = inet_addr(ipaddr);
-    target.sin_port = htons(port);
+    struct sockaddr_in servAddress;
+    servAddress.sin_family = AF_INET;
+    servAddress.sin_addr.s_addr = htonl(INADDR_ANY);
+    servAddress.sin_port = htons(port);
 
-    // サーバへ接続
-    if (connect(sock, (struct sockaddr *)&target, sizeof(target)) < 0)
-        DieWithError("connect() failed");
+    // ソケットにサーバの情報を登録
+    bind(servSock, (struct sockaddr *)&servAddress, sizeof(servAddress));
 
-    return sock;
-}
-
-void my_scanf(char *buf, int num_letter)
-{
-    // num_letter文字だけ入力させる（scanfの脆弱性対策）
-    char format[20];
-    sprintf(format, "%s%d%s", "%", num_letter, "s%*[^\n]");
-    scanf(format, buf);
-    getchar();
+    return servSock;
 }
 
 // 区切り文字が出るまで、または最大文字数を受信するまで受信を繰り返す
@@ -81,7 +93,11 @@ void read_until_delim(int sock, char *buf, char delimiter, int max_length)
     {
         // 1文字だけ受信
         if ((len_r = recv(sock, buf + index_letter, 1, 0)) <= 0)
-            DieWithError("recv() failed");
+        {
+            // エラー（-1）やソケットが閉じていた場合（0）には何もせず終了
+            printf("接続が切れました\n");
+            return;
+        }
 
         // 受信した文字が区切り文字ならループを抜ける
         if (buf[index_letter] == delimiter)
@@ -93,51 +109,47 @@ void read_until_delim(int sock, char *buf, char delimiter, int max_length)
     buf[index_letter] = '\0';
 }
 
+// 本来はデータベースから現在の預金残高を取得
+int get_current_balance()
+{
+    return 1000000;
+}
+
+// 本来は預金残高をデータベースに登録
+void set_current_balance(int new_balance)
+{
+    return;
+}
+//特定のバイト数だけ受信する
+void read_certain_bytes(int sock, void *buf, int length)
+{
+    int len_r = 0;
+    int len_sum = 0;
+
+    while (len_sum < length)
+    {
+        if ((len_r = recv(sock, buf + len_sum, length - len_sum, 0)) <= 0)
+            DieWithError("recv() failed");
+        len_sum += len_r;
+    }
+}
+
 void commun(int sock)
 {
-    char cmd[2] = "";                    // コマンド入力用
-    char withdraw[MONEY_DIGIT_SIZE + 1]; // 引き出し額
-    char deposit[MONEY_DIGIT_SIZE + 1];  // 預け入れ額
-    char msg[BUF_SIZE];                  // 送信メッセージ
+    char buf[BUF_SIZE];                  // 通信用バッファ
+    int balance = get_current_balance(); // 預金残高
+    struct money msgMoney;
+    //引き出し預入の金閣受信
+    read_certain_bytes(sock, &msgMoney, (int)sizeof(int));
+    balance += msgMoney.deposit;
+    balance -= msgMoney.withdraw;
+};
 
-    printf("0:引き出し　1:預け入れ　2:残高照会　9:終了\n");
-    printf("何をしますか？ > ");
-    my_scanf(cmd, 1);
+// データベースの預金残高を更新
+set_current_balance(balance);
 
-    // 入力値によって処理を分岐
-    switch (cmd[0])
-    {
-    case '0':
-        // 引き出し処理
-        printf("引き出す金額を入力してください > ");
-        my_scanf(withdraw, MONEY_DIGIT_SIZE);
-
-        sprintf(msg, "0_%s_", withdraw);
-        break;
-    case '1':
-        //預け入れ処理
-        printf("預け入れる金額を入力してください > ");
-        my_scanf(deposit, MONEY_DIGIT_SIZE);
-
-        sprintf(msg, "%s_0_", deposit);
-        break;
-    case '2':
-        // 残高照会
-        strcpy(msg, "0_0_");
-        break;
-    default:
-        // 終了
-        printf("番号が確認できませんでした。\n");
-        return;
-    }
-
-    printf("%lu バイト\n", sizeof(char) * strlen(msg));
-    // 送信処理
-    if (send(sock, msg, strlen(msg), 0) != strlen(msg))
-        DieWithError("send() sent a message of unexpected bytes：");
-
-    // 受信処理
-    read_until_delim(sock, msg, '_', BUF_SIZE);
-    // 表示処理
-    printf("残高は%d円になりました", atoi(msg));
+// クライアントへ残高を送信
+sprintf(buf, "%d_", balance);
+if (send(sock, &balance, sizeof(balance), 0) != strlen(balance))
+    DieWithError("send() sent a message of unexpected bytes");
 }
