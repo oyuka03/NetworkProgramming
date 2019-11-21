@@ -124,6 +124,7 @@ void read_certain_bytes(int sock, void *buf, int length)
 }
 
 // 本来はデータベースから現在の預金残高を取得
+// 2019
 int get_current_balance()
 {
     return 1000000;

@@ -99,7 +99,8 @@ void read_until_delim(int sock, char *buf, char delimiter, int max_length)
 	// nullを末尾に追加
 	buf[index_letter] = '\0';
 }
-//特定のバイト数だけ受信する
+
+// 特定のバイト数だけ受信する
 void read_certain_bytes(int sock, void *buf, int length)
 {
 	int len_r = 0;
@@ -116,9 +117,9 @@ void read_certain_bytes(int sock, void *buf, int length)
 void commun(int sock)
 {
 	char cmd[2] = "";	  // コマンド入力用
-	struct money msgMoney; // 引き出し額// 預け入れ額
-	char money[BUF_SIZE];  // 送信メッセージ
-	int result;
+	struct money msgMoney; // 引き出し額/預け入れ額
+	char money[BUF_SIZE];  // 金額入力用
+	int result;			   // 結果
 
 	printf("0:引き出し　1:預け入れ　2:残高照会　9:終了\n");
 	printf("何をしますか？ > ");
@@ -131,20 +132,20 @@ void commun(int sock)
 		// 引き出し処理
 		printf("引き出す金額を入力してください > ");
 		my_scanf(money, MONEY_DIGIT_SIZE);
-		msgMoney.deposit = 0;
-		msgMoney.withdraw = atoi(money);
+		msgMoney.deposit = htonl(0);
+		msgMoney.withdraw = htonl(atoi(money));
 		break;
 	case '1':
 		//預け入れ処理
 		printf("預け入れる金額を入力してください > ");
 		my_scanf(money, MONEY_DIGIT_SIZE);
-		msgMoney.deposit = 0;
-		msgMoney.withdraw = atoi(money);
+		msgMoney.deposit = htonl(atoi(money));
+		msgMoney.withdraw = htonl(0);
 		break;
 	case '2':
 		// 残高照会
-		msgMoney.deposit = 0;
-		msgMoney.withdraw = atoi(money);
+		msgMoney.deposit = htonl(0);
+		msgMoney.withdraw = htonl(0);
 		break;
 	default:
 		// 終了
@@ -152,14 +153,18 @@ void commun(int sock)
 		return;
 	}
 
-	printf("%lu バイト\n", sizeof(char) * strlen(msgMoney));
+	printf("%lu バイト\n", sizeof(msgMoney));
 
 	// 送信処理
-	if (send(sock, &msgMoney, strlen(msgMoney), 0) != sizeof(msgMoney))
+	if (send(sock, &msgMoney, sizeof(msgMoney), 0) != sizeof(msgMoney))
 		DieWithError("send() sent a message of unexpected bytes");
 
 	// 受信処理
 	read_certain_bytes(sock, &result, (int)sizeof(int));
+
+	// ネットワークバイトオーダから変換
+	result = ntohl(result);
+
 	// 表示処理
-	printf("残高は%d円になりました", result);
+	printf("残高は%d円になりました\n", result);
 }
